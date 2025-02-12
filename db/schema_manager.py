@@ -58,11 +58,14 @@ class SchemaManager:
             with self.connection.cursor() as cursor:
                 cursor.execute(f"DESCRIBE {table_name};")
                 columns = cursor.fetchall()
-                self.logger.debug("Columns for table '%s': %s", table_name, columns)
-                return columns
+                # Convert tuple results to list of dictionaries
+                column_names = [desc[0] for desc in cursor.description]  # Get column headers
+                column_dicts = [dict(zip(column_names, col, strict=False)) for col in columns]
+                return column_dicts  # Now a list of dictionaries
         except pymysql.MySQLError as e:
             self.logger.error("Error retrieving columns for table '%s': %s", table_name, e)
             raise e
+        return []
 
     def get_primary_keys(self, table_name):
         """
@@ -76,7 +79,7 @@ class SchemaManager:
         """
         try:
             columns = self.get_table_columns(table_name)
-            primary_keys = [col[0] for col in columns if col[3].upper() == "PRI"]
+            primary_keys = [col["Field"] for col in columns if col["Key"].upper() == "PRI"]
             self.logger.debug("Primary keys for table '%s': %s", table_name, primary_keys)
             return primary_keys
         except Exception as e:
@@ -110,18 +113,38 @@ class SchemaManager:
 
         return definition
 
-    def create_table(self, table_name, columns_definition):
+    def create_table(self, table_name, columns):
         """
         Creates a new table with the given columns definition.
 
         Args:
-            table_name (str): The name of the table to create.
-            columns_definition (str): SQL string defining columns (e.g., "id INT PRIMARY KEY, name VARCHAR(100)").
+            table_name (str): The name of the new table.
+            columns (list): List of dictionaries containing column definitions.
         """
         try:
             with self.connection.cursor() as cursor:
-                sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({columns_definition});"
-                self.logger.debug("Executing SQL: %s", sql)
+                column_definitions = []
+                primary_keys = []
+
+                for col in columns:
+                    col_def = f"{col['name']} {col['type']}"
+
+                    if col.get("auto_increment"):
+                        col_def += " AUTO_INCREMENT"
+
+                    if col.get("not_null"):
+                        col_def += " NOT NULL"
+
+                    if col.get("is_primary"):
+                        primary_keys.append(col["name"])
+
+                    column_definitions.append(col_def)
+
+                # Add primary key constraint
+                if primary_keys:
+                    column_definitions.append(f"PRIMARY KEY ({', '.join(list(set(primary_keys)))})")
+
+                sql = f"CREATE TABLE {table_name} ({', '.join(column_definitions)});"
                 cursor.execute(sql)
                 self.connection.commit()
                 self.logger.info("Table '%s' created successfully.", table_name)
@@ -147,43 +170,67 @@ class SchemaManager:
             self.logger.error("Error dropping table '%s': %s", table_name, e)
             raise e
 
-    def add_column(self, table_name, column_definition):
+    def add_column(self, table_name, columns):
         """
-        Adds a new column to an existing table.
+        Adds multiple new columns to an existing table.
 
         Args:
             table_name (str): The name of the table.
-            column_definition (str): SQL string defining the new column (e.g., "new_column VARCHAR(255)").
+            columns (list): List of dictionaries containing column details.
+
+        Returns:
+            bool: True if columns added successfully, False otherwise.
         """
         try:
             with self.connection.cursor() as cursor:
-                sql = f"ALTER TABLE {table_name} ADD COLUMN {column_definition};"
-                self.logger.debug("Executing SQL: %s", sql)
-                cursor.execute(sql)
-                self.connection.commit()
-                self.logger.info("Added column to table '%s': %s", table_name, column_definition)
+                alter_statements = []
+
+                for col in columns:
+                    col_def = f"{col['name']} {col['type']}"
+
+                    if col.get("auto_increment"):
+                        col_def += " AUTO_INCREMENT"
+
+                    if col.get("not_null"):
+                        col_def += " NOT NULL"
+
+                    alter_statements.append(f"ADD COLUMN {col_def}")
+
+                if alter_statements:
+                    sql = f"ALTER TABLE {table_name} {', '.join(alter_statements)};"
+                    cursor.execute(sql)
+                    self.connection.commit()
         except pymysql.MySQLError as e:
             self.logger.error("Error adding column to table '%s': %s", table_name, e)
             raise e
 
-    def modify_column(self, table_name, column_name, new_definition):
+    def modify_column(self, table_name, modified_columns):
         """
-        Modifies an existing column in a table.
+        Modifies multiple columns in an existing table.
 
         Args:
-            table_name (str): The table containing the column.
-            column_name (str): The name of the column to modify.
-            new_definition (str): The new column definition (e.g., "VARCHAR(255) NOT NULL").
+            table_name (str): The name of the table.
+            modified_columns (list): List of dictionaries containing updated column details.
+
+        Returns:
+            bool: True if columns modified successfully, False otherwise.
         """
         try:
             with self.connection.cursor() as cursor:
-                sql = f"ALTER TABLE {table_name} MODIFY COLUMN {column_name} {new_definition};"
-                self.logger.debug("Executing SQL: %s", sql)
-                cursor.execute(sql)
-                self.connection.commit()
-                self.logger.info("Modified column '%s' in table '%s'.", column_name, table_name)
+                alter_statements = []
+
+                for col in modified_columns:
+                    alter_def = f"{col['old_name']} {col['new_name']} {col['type']}"
+                    if col.get("not_null"):
+                        alter_def += " NOT NULL"
+                    alter_statements.append(f"CHANGE COLUMN {alter_def}")
+
+                if alter_statements:
+                    sql = f"ALTER TABLE {table_name} {', '.join(alter_statements)};"
+                    cursor.execute(sql)
+                    self.connection.commit()
         except pymysql.MySQLError as e:
-            self.logger.error("Error modifying column '%s' in table '%s': %s", column_name, table_name, e)
+            self.logger.error("Error modifying columns in table '%s': %s", table_name, e)
             raise e
 
     def drop_column(self, table_name, column_name):
