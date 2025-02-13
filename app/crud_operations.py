@@ -201,8 +201,7 @@ def table_operations_page(schema_manager: SchemaManager, operation):
                 col1, col2, col3, col4, col5 = st.columns(5)
 
                 col["name"] = col1.text_input(f"Column Name {idx + 1}", key=f"col_name_{idx}")
-                col["type"] = col2.selectbox(f"Type {idx + 1}", ["INT", "VARCHAR(255)", "TEXT", "DATE", "BOOLEAN"],
-                                             key=f"col_type_{idx}")
+                col["type"] = col2.text_input(f"Type {idx + 1}", key=f"col_type_{idx}")
                 col["is_primary"] = col3.checkbox("Primary Key", key=f"pk_{idx}")
                 col["auto_increment"] = col4.checkbox("Auto Increment", key=f"ai_{idx}")
                 col["not_null"] = col5.checkbox("Not Null", key=f"nn_{idx}")
@@ -258,8 +257,7 @@ def table_operations_page(schema_manager: SchemaManager, operation):
                     col1, col2, col3 = st.columns(3)
 
                     col["name"] = col1.text_input(f"Column Name {idx + 1}", key=f"add_col_name_{idx}")
-                    col["type"] = col2.selectbox(f"Type {idx + 1}", ["INT", "VARCHAR(255)", "TEXT", "DATE", "BOOLEAN"],
-                                                 key=f"add_col_type_{idx}")
+                    col["type"] = col2.text_input(f"Type {idx + 1}", key=f"add_col_type_{idx}")
                     # col["is_primary"] = col3.checkbox("Primary Key", key=f"add_pk_{idx}")
                     # col["auto_increment"] = col4.checkbox("Auto Increment", key=f"add_ai_{idx}")
                     col["not_null"] = col3.checkbox("Not Null", key=f"add_nn_{idx}")
@@ -344,7 +342,7 @@ def table_operations_page(schema_manager: SchemaManager, operation):
 
                     old_col_name = col["Field"]
                     new_col_name = col1.text_input(f"New Column Name ({old_col_name})", value=col["new_name"], key=f"mod_col_name_{idx}")
-                    new_col_type = col2.selectbox(f"New Type ({old_col_name})", ["INT", "VARCHAR(255)", "TEXT", "DATE", "BOOLEAN"], index=0 if "int" in col["Type"] else 1, key=f"mod_col_type_{idx}")
+                    new_col_type = col2.text_input(f"New Type ({old_col_name})", key=f"mod_col_type_{idx}")
                     not_null = col3.checkbox("Not Null", value=col["not_null"], key=f"mod_nn_{idx}")
 
                     # Only update if there are changes

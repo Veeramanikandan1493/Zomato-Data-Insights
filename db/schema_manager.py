@@ -125,6 +125,7 @@ class SchemaManager:
             with self.connection.cursor() as cursor:
                 column_definitions = []
                 primary_keys = []
+                foreign_keys = []
 
                 for col in columns:
                     col_def = f"{col['name']} {col['type']}"
@@ -138,11 +139,21 @@ class SchemaManager:
                     if col.get("is_primary"):
                         primary_keys.append(col["name"])
 
+                    if "foreign_key" in col and col["foreign_key"]:
+                        referenced_table, referenced_column = col["foreign_key"].split("(")
+                        referenced_column = referenced_column.rstrip(")")
+                        foreign_keys.append(
+                            f"FOREIGN KEY ({col['name']}) REFERENCES {referenced_table}({referenced_column})")
+
                     column_definitions.append(col_def)
 
                 # Add primary key constraint
                 if primary_keys:
                     column_definitions.append(f"PRIMARY KEY ({', '.join(list(set(primary_keys)))})")
+
+                # Add foreign key constraints
+                if foreign_keys:
+                    column_definitions.extend(foreign_keys)
 
                 sql = f"CREATE TABLE {table_name} ({', '.join(column_definitions)});"
                 cursor.execute(sql)

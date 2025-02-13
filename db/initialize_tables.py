@@ -16,72 +16,79 @@ def create_initial_tables():
     connection = st.session_state.db_connector.get_connection()
     schema_manager = SchemaManager(connection)
 
-    customers_columns = """
-        customer_id INT PRIMARY KEY AUTO_INCREMENT,
-        name VARCHAR(255),
-        email VARCHAR(255),
-        phone VARCHAR(50),
-        location VARCHAR(255),
-        signup_date DATE,
-        is_premium BOOLEAN,
-        preferred_cuisine VARCHAR(100),
-        total_orders INT,
-        average_rating DECIMAL(3,2)
-    """
-    restaurants_columns = """
-        restaurant_id INT PRIMARY KEY AUTO_INCREMENT,
-        name VARCHAR(255),
-        cuisine_type VARCHAR(100),
-        location VARCHAR(255),
-        owner_name VARCHAR(255),
-        average_delivery_time INT,
-        contact_number VARCHAR(50),
-        rating DECIMAL(3,2),
-        total_orders INT,
-        is_active BOOLEAN
-    """
-    orders_columns = """
-        order_id INT PRIMARY KEY AUTO_INCREMENT,
-        customer_id INT,
-        restaurant_id INT,
-        order_date DATETIME,
-        delivery_time DATETIME,
-        status VARCHAR(50),
-        total_amount DECIMAL(10,2),
-        payment_mode VARCHAR(50),
-        discount_applied DECIMAL(10,2),
-        feedback_rating DECIMAL(3,2),
-        FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
-        FOREIGN KEY (restaurant_id) REFERENCES restaurants(restaurant_id)
-    """
-    deliveries_columns = """
-        delivery_id INT PRIMARY KEY AUTO_INCREMENT,
-        order_id INT,
-        delivery_person_id INT,
-        delivery_status VARCHAR(50),
-        distance DECIMAL(5,2),
-        delivery_time INT,
-        estimated_time INT,
-        delivery_fee DECIMAL(5,2),
-        vehicle_type VARCHAR(50),
-        FOREIGN KEY (order_id) REFERENCES orders(order_id)
-    """
-    delivery_persons_columns = """
-        delivery_person_id INT PRIMARY KEY AUTO_INCREMENT,
-        name VARCHAR(255),
-        contact_number VARCHAR(50),
-        vehicle_type VARCHAR(50),
-        total_deliveries INT,
-        average_rating DECIMAL(3,2),
-        location VARCHAR(255)
-    """
+    # Customers Table Schema
+    customers_schema = [
+        {"name": "customer_id", "type": "INT", "is_primary": True, "auto_increment": True, "not_null": True},
+        {"name": "name", "type": "VARCHAR(255)", "not_null": False},
+        {"name": "email", "type": "VARCHAR(255)", "not_null": False},
+        {"name": "phone", "type": "VARCHAR(255)", "not_null": False},
+        {"name": "location", "type": "VARCHAR(255)", "not_null": False},
+        {"name": "signup_date", "type": "DATE", "not_null": False},
+        {"name": "is_premium", "type": "BOOLEAN", "not_null": False},
+        {"name": "preferred_cuisine", "type": "VARCHAR(255)", "not_null": False},
+        {"name": "total_orders", "type": "INT", "not_null": False},
+        {"name": "average_rating", "type": "FLOAT", "not_null": False}
+    ]
+
+    # Restaurants Table Schema
+    restaurants_schema = [
+        {"name": "restaurant_id", "type": "INT", "is_primary": True, "auto_increment": True, "not_null": True},
+        {"name": "name", "type": "VARCHAR(255)", "not_null": False},
+        {"name": "cuisine_type", "type": "VARCHAR(255)", "not_null": False},
+        {"name": "location", "type": "VARCHAR(255)", "not_null": False},
+        {"name": "owner_name", "type": "VARCHAR(255)", "not_null": False},
+        {"name": "average_delivery_time", "type": "INT", "not_null": False},
+        {"name": "contact_number", "type": "VARCHAR(255)", "not_null": False},
+        {"name": "rating", "type": "FLOAT", "not_null": False},
+        {"name": "total_orders", "type": "INT", "not_null": False},
+        {"name": "is_active", "type": "BOOLEAN", "not_null": False}
+    ]
+
+    # Orders Table Schema
+    orders_schema = [
+        {"name": "order_id", "type": "INT", "is_primary": True, "auto_increment": True, "not_null": True},
+        {"name": "customer_id", "type": "INT", "foreign_key": "customers(customer_id)", "not_null": False},
+        {"name": "restaurant_id", "type": "INT", "foreign_key": "restaurants(restaurant_id)", "not_null": False},
+        {"name": "order_date", "type": "DATETIME", "not_null": False},
+        {"name": "delivery_time", "type": "DATETIME", "not_null": False},
+        {"name": "status", "type": "VARCHAR(255)", "not_null": False},
+        {"name": "total_amount", "type": "FLOAT", "not_null": False},
+        {"name": "payment_mode", "type": "VARCHAR(255)", "not_null": False},
+        {"name": "discount_applied", "type": "FLOAT", "not_null": False},
+        {"name": "feedback_rating", "type": "FLOAT", "not_null": False}
+    ]
+
+    # Deliveries Table Schema
+    deliveries_schema = [
+        {"name": "delivery_id", "type": "INT", "is_primary": True, "auto_increment": True, "not_null": True},
+        {"name": "order_id", "type": "INT", "foreign_key": "orders(order_id)", "not_null": False},
+        {"name": "delivery_person_id", "type": "INT", "foreign_key": "delivery_persons(delivery_person_id)",
+         "not_null": False},
+        {"name": "delivery_status", "type": "VARCHAR(255)", "not_null": False},
+        {"name": "distance", "type": "FLOAT", "not_null": False},
+        {"name": "delivery_time", "type": "INT", "not_null": False},
+        {"name": "estimated_time", "type": "INT", "not_null": False},
+        {"name": "delivery_fee", "type": "FLOAT", "not_null": False},
+        {"name": "vehicle_type", "type": "VARCHAR(255)", "not_null": False}
+    ]
+
+    # Delivery Persons Table Schema
+    delivery_persons_schema = [
+        {"name": "delivery_person_id", "type": "INT", "is_primary": True, "auto_increment": True, "not_null": True},
+        {"name": "name", "type": "VARCHAR(255)", "not_null": False},
+        {"name": "contact_number", "type": "VARCHAR(255)", "not_null": False},
+        {"name": "vehicle_type", "type": "VARCHAR(255)", "not_null": False},
+        {"name": "total_deliveries", "type": "INT", "not_null": False},
+        {"name": "average_rating", "type": "FLOAT", "not_null": False},
+        {"name": "location", "type": "VARCHAR(255)", "not_null": False}
+    ]
 
     try:
-        schema_manager.create_table("customers", customers_columns)
-        schema_manager.create_table("restaurants", restaurants_columns)
-        schema_manager.create_table("orders", orders_columns)
-        schema_manager.create_table("deliveries", deliveries_columns)
-        schema_manager.create_table("delivery_persons", delivery_persons_columns)
+        schema_manager.create_table("delivery_persons", delivery_persons_schema)
+        schema_manager.create_table("customers", customers_schema)
+        schema_manager.create_table("restaurants", restaurants_schema)
+        schema_manager.create_table("orders", orders_schema)
+        schema_manager.create_table("deliveries", deliveries_schema)
         st.success("Initial tables created successfully.")
     except Exception as e:
         st.error(f"Error creating initial tables: {e}")
